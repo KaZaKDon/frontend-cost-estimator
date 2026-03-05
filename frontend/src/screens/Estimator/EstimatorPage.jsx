@@ -13,6 +13,8 @@ import ConfirmModal from "@/components/ConfirmModal/ConfirmModal.jsx";
 import HistoryPanel from "./components/HistoryPanel.jsx";
 import { downloadJson, makeSafeFilename, dateStamp } from "@/shared/utils/downloadJson.js";
 import { importDraft } from "@/shared/core/importDraft.js";
+import SendEstimateModal from "@/components/SendEstimateModal/SendEstimateModal.jsx";
+import { buildEstimateText } from "@/shared/utils/buildEstimateText.js";
 
 import "./styles.css";
 
@@ -28,6 +30,8 @@ export default function EstimatorPage() {
         type: null, // "template" | "clear"
         kind: null,
     });
+    const [sendOpen, setSendOpen] = useState(false);
+    const [sendLoading, setSendLoading] = useState(false);
 
     const fileRef = useRef(null);
 
@@ -47,6 +51,53 @@ export default function EstimatorPage() {
         timerRef.current = setTimeout(() => saveAppState(state), 400);
         return () => clearTimeout(timerRef.current);
     }, [state]);
+
+    async function sendEstimate({ contact, clientEmail }) {
+        try {
+            setSendLoading(true);
+
+            const estimateText = buildEstimateText(state.draft, totals);
+
+            const payload = {
+                contact: contact || undefined,
+                clientEmail: clientEmail || undefined,
+                title: state.draft.projectMeta.title || "Без названия",
+                total: totals?.total ?? totals?.grandTotal ?? totals?.sum,
+                days: totals?.days ?? totals?.totalDays,
+                estimateText,
+                estimateJson: state.draft,
+            };
+
+            const res = await fetch("http://localhost:3001/api/lead", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify(payload),
+            });
+
+            const data = await res.json().catch(() => null);
+            if (!res.ok || !data?.ok) {
+                throw new Error(data?.error || "SEND_FAILED");
+            }
+
+            setSendOpen(false);
+
+            // clientSent может быть false — это нормально при ограничениях SMTP
+            if (data.clientSent === false && clientEmail) {
+                setToast({
+                    open: true,
+                    message: "Тебе отправлено ✅ Клиенту не удалось отправить копию — пусть сохранит смету кнопкой «Скопировать».",
+                    actionText: "",
+                    onAction: null,
+                });
+            } else {
+                setToast({ open: true, message: "Смета отправлена ✅", actionText: "", onAction: null });
+            }
+        } catch {
+            setToast({ open: true, message: "Ошибка отправки сметы", actionText: "", onAction: null });
+        } finally {
+            setSendLoading(false);
+        }
+    }
 
     return (
         <div className="page">
@@ -145,6 +196,25 @@ export default function EstimatorPage() {
                             setToast({ open: true, message: "JSON экспортирован", actionText: "", onAction: null });
                         }}
                     />
+                    <div className="send-estimate-row">
+                        <button
+                            className="primary"
+                            type="button"
+                            onClick={() => setSendOpen(true)}
+                            disabled={!state.draft.lineItems.length}
+                        >
+                            Отправить смету
+                        </button>
+
+                        <a
+                            className="secondary"
+                            href="https://t.me/KazakDmitriy"
+                            target="_blank"
+                            rel="noopener noreferrer"
+                        >
+                            Остались вопросы?
+                        </a>
+                    </div>
                     <div className="card" style={{ marginTop: 12 }}>
                         <div className="card-head">
                             <h2>История</h2>
@@ -259,6 +329,12 @@ export default function EstimatorPage() {
 
                     setConfirmState({ open: false, type: null, kind: null });
                 }}
+            />
+            <SendEstimateModal
+                open={sendOpen}
+                onClose={() => setSendOpen(false)}
+                onSubmit={sendEstimate}
+                loading={sendLoading}
             />
         </div>
     );

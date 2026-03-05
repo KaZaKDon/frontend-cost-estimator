@@ -4,15 +4,31 @@ import helmet from "helmet";
 import rateLimit from "express-rate-limit";
 import nodemailer from "nodemailer";
 import dotenv from "dotenv";
-import { z } from "zod";
+import {
+    z
+} from "zod";
 
 dotenv.config();
 
 const app = express();
+console.log("[ENV]", {
+    SMTP_HOST: process.env.SMTP_HOST,
+    SMTP_PORT: process.env.SMTP_PORT,
+    SMTP_SECURE: process.env.SMTP_SECURE,
+    SMTP_USER: process.env.SMTP_USER,
+    SMTP_PASS_LEN: process.env.SMTP_PASS ? process.env.SMTP_PASS.length : 0,
+    LEADS_TO: process.env.LEADS_TO,
+});
 
 // --- Security & parsing
-app.use(helmet());
-app.use(express.json({ limit: "1mb" })); // смета не должна быть огромной
+app.use(
+    helmet({
+        crossOriginResourcePolicy: false,
+    })
+);
+app.use(express.json({
+    limit: "1mb"
+})); // смета не должна быть огромной
 
 // --- CORS
 const corsOrigin = process.env.CORS_ORIGIN?.split(",").map((s) => s.trim()).filter(Boolean) || [];
@@ -71,7 +87,9 @@ const transporter = nodemailer.createTransport({
 });
 
 app.get("/health", async (req, res) => {
-    res.json({ ok: true });
+    res.json({
+        ok: true
+    });
 });
 
 app.post("/api/lead", async (req, res) => {
@@ -117,49 +135,59 @@ app.post("/api/lead", async (req, res) => {
             to: leadsTo,
             subject,
             text: textBody,
-            attachments: [
-                {
-                    filename: "estimate.json",
-                    content: jsonBuffer,
-                    contentType: "application/json; charset=utf-8",
-                },
-            ],
+            attachments: [{
+                filename: "estimate.json",
+                content: jsonBuffer,
+                contentType: "application/json; charset=utf-8",
+            },],
         };
 
         // Письмо клиенту (если указан email)
         const toClient =
-            data.clientEmail
-                ? {
+            data.clientEmail ?
+                {
                     from: mailFrom,
                     to: data.clientEmail,
                     subject: `Ваша смета: ${price} (${days})${title}`,
-                    text:
-                        `Здравствуйте!\n\n` +
+                    text: `Здравствуйте!\n\n` +
                         `Отправляю копию сметы.\n` +
                         `Стоимость ориентировочная — уточняется после обсуждения.\n\n` +
                         `Если остались вопросы — ответьте на это письмо или напишите в Telegram.\n\n` +
                         `---\n\n` +
                         `${data.estimateText}\n`,
-                    attachments: [
-                        {
-                            filename: "estimate.json",
-                            content: jsonBuffer,
-                            contentType: "application/json; charset=utf-8",
-                        },
-                    ],
-                }
-                : null;
+                    attachments: [{
+                        filename: "estimate.json",
+                        content: jsonBuffer,
+                        contentType: "application/json; charset=utf-8",
+                    },],
+                } :
+                null;
 
         // Проверка SMTP (один раз можно убрать в проде, но на старте полезно)
         // await transporter.verify();
 
         await transporter.sendMail(toYou);
-        if (toClient) await transporter.sendMail(toClient);
 
-        return res.json({ ok: true });
+        let clientSent = false;
+        let clientError = null;
+
+        if (toClient) {
+            try {
+                await transporter.sendMail(toClient);
+                clientSent = true;
+            } catch (e) {
+                clientError = e?.message || String(e);
+                console.warn("Client email send failed:", clientError);
+            }
+        }
+
+        return res.json({ ok: true, clientSent });
     } catch (err) {
         console.error(err);
-        return res.status(500).json({ ok: false, error: "SERVER_ERROR" });
+        return res.status(500).json({
+            ok: false,
+            error: "SERVER_ERROR"
+        });
     }
 });
 

@@ -4,7 +4,7 @@
 
 .grid {
     display: grid;
-    grid-template-columns: 1fr 380px;
+    grid-template-columns: minmax(0, 1fr) 360px;
     gap: 16px;
     align-items: start;
 }
@@ -22,6 +22,8 @@
     background: var(--panel);
     box-shadow: var(--shadow);
     backdrop-filter: blur(10px);
+    position: relative;
+    z-index: 1;
 }
 
 .card h2,
