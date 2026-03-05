@@ -73,7 +73,7 @@ export default function EstimatorPage() {
                 estimateJson: state.draft,
             };
 
-            const res = await fetch("api/lead.php", {
+            const res = await fetch("/api/lead.php", {
                 method: "POST",
                 headers: { "Content-Type": "application/json" },
                 body: JSON.stringify(payload),
