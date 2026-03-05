@@ -25,11 +25,13 @@ export default function EstimatorPage() {
         actionText: "",
         onAction: null,
     });
+
     const [confirmState, setConfirmState] = useState({
         open: false,
         type: null, // "template" | "clear"
         kind: null,
     });
+
     const [sendOpen, setSendOpen] = useState(false);
     const [sendLoading, setSendLoading] = useState(false);
 
@@ -38,9 +40,8 @@ export default function EstimatorPage() {
     function closeToast() {
         setToast({ open: false, message: "", actionText: "", onAction: null });
     }
-    const [state, dispatch] = useReducer(estimatorReducer, null, () =>
-        loadAppState()
-    );
+
+    const [state, dispatch] = useReducer(estimatorReducer, null, () => loadAppState());
 
     const totals = useMemo(() => selectTotals(state), [state]);
 
@@ -56,44 +57,70 @@ export default function EstimatorPage() {
         try {
             setSendLoading(true);
 
+            // Нормализуем вход (без undefined — PHP/JSON проще)
+            const safeContact = (contact || "").trim();
+            const safeClientEmail = (clientEmail || "").trim();
+
             const estimateText = buildEstimateText(state.draft, totals);
 
             const payload = {
-                contact: contact || undefined,
-                clientEmail: clientEmail || undefined,
-                title: state.draft.projectMeta.title || "Без названия",
-                total: totals?.total ?? totals?.grandTotal ?? totals?.sum,
-                days: totals?.days ?? totals?.totalDays,
+                contact: safeContact || null,
+                clientEmail: safeClientEmail || null,
+                title: state.draft?.projectMeta?.title || "Без названия",
+                total: totals?.total ?? totals?.grandTotal ?? totals?.sum ?? null,
+                days: totals?.days ?? totals?.totalDays ?? null,
                 estimateText,
                 estimateJson: state.draft,
             };
 
-            const res = await fetch("http://localhost:3001/api/lead", {
+            const res = await fetch("api/lead.php", {
                 method: "POST",
                 headers: { "Content-Type": "application/json" },
                 body: JSON.stringify(payload),
             });
 
-            const data = await res.json().catch(() => null);
+            // Если сервер вернул HTML/ошибку — json() упадёт, поэтому безопасно
+            const raw = await res.text();
+            let data = null;
+
+            try {
+                data = raw ? JSON.parse(raw) : null;
+            } catch {
+                // если это HTML (например 404) — data останется null
+            }
+
             if (!res.ok || !data?.ok) {
-                throw new Error(data?.error || "SEND_FAILED");
+                console.error("Lead API response:", { status: res.status, raw });
+                throw new Error(data?.error || `HTTP_${res.status}`);
             }
 
             setSendOpen(false);
 
-            // clientSent может быть false — это нормально при ограничениях SMTP
-            if (data.clientSent === false && clientEmail) {
+            // Если копию клиенту не удалось отправить — это ок, просто сообщаем
+            if (data.clientSent === false && safeClientEmail) {
                 setToast({
                     open: true,
-                    message: "Тебе отправлено ✅ Клиенту не удалось отправить копию — пусть сохранит смету кнопкой «Скопировать».",
+                    message:
+                        "Смета отправлена тебе ✅ Клиенту копию отправить не удалось — пусть сохранит смету кнопкой «Скопировать» или экспортом JSON.",
                     actionText: "",
                     onAction: null,
                 });
             } else {
-                setToast({ open: true, message: "Смета отправлена ✅", actionText: "", onAction: null });
+                setToast({
+                    open: true,
+                    message: "Смета отправлена ✅",
+                    actionText: "",
+                    onAction: null,
+                });
             }
-        } catch {
-            setToast({ open: true, message: "Ошибка отправки сметы", actionText: "", onAction: null });
+        } catch (err) {
+            console.error(err);
+            setToast({
+                open: true,
+                message: "Ошибка отправки сметы",
+                actionText: "",
+                onAction: null,
+            });
         } finally {
             setSendLoading(false);
         }
@@ -115,11 +142,12 @@ export default function EstimatorPage() {
                             />
 
                             {/* Кнопку оставляем ОДНУ — здесь или в LineItemsTable.
-        Если оставляешь здесь (как на скрине) — в LineItemsTable кнопку убираем. */}
+                                Если оставляешь здесь (как на скрине) — в LineItemsTable кнопку убираем. */}
                             <button className="primary" type="button" onClick={() => dispatch(actions.addLineItem())}>
                                 + Добавить экран
                             </button>
                         </div>
+
                         <div className="card" style={{ marginTop: 12 }}>
                             <div style={{ fontWeight: 800, marginBottom: 8 }}>Быстро добавить</div>
                             <input
@@ -154,15 +182,9 @@ export default function EstimatorPage() {
                     />
 
                     <div className="stack">
-                        <OptionsPanel
-                            draft={state.draft}
-                            dispatch={dispatch}
-                            actions={actions}
-                        />
+                        <OptionsPanel draft={state.draft} dispatch={dispatch} actions={actions} />
 
-                        {state.draft.lineItems.length > 0 && (
-                            <Breakdown totals={totals} />
-                        )}
+                        {state.draft.lineItems.length > 0 && <Breakdown totals={totals} />}
                     </div>
                 </div>
 
@@ -183,7 +205,12 @@ export default function EstimatorPage() {
                             setConfirmState({ open: true, type: "clear", kind: null });
                         }}
                         onCopied={() =>
-                            setToast({ open: true, message: "Смета скопирована 👍", actionText: "", onAction: null })
+                            setToast({
+                                open: true,
+                                message: "Смета скопирована 👍",
+                                actionText: "",
+                                onAction: null,
+                            })
                         }
                         onExport={() => {
                             const title = makeSafeFilename(state.draft.projectMeta.title);
@@ -193,9 +220,15 @@ export default function EstimatorPage() {
                             // экспортируем ВСЁ состояние draft, чтобы можно было восстановить 1:1
                             downloadJson(filename, state.draft);
 
-                            setToast({ open: true, message: "JSON экспортирован", actionText: "", onAction: null });
+                            setToast({
+                                open: true,
+                                message: "JSON экспортирован",
+                                actionText: "",
+                                onAction: null,
+                            });
                         }}
                     />
+
                     <div className="send-estimate-row">
                         <button
                             className="primary"
@@ -206,15 +239,11 @@ export default function EstimatorPage() {
                             Отправить смету
                         </button>
 
-                        <a
-                            className="secondary"
-                            href="https://t.me/KazakDmitriy"
-                            target="_blank"
-                            rel="noopener noreferrer"
-                        >
+                        <a className="secondary" href="https://t.me/KazakDmitriy" target="_blank" rel="noopener noreferrer">
                             Остались вопросы?
                         </a>
                     </div>
+
                     <div className="card" style={{ marginTop: 12 }}>
                         <div className="card-head">
                             <h2>История</h2>
@@ -267,7 +296,12 @@ export default function EstimatorPage() {
                                         onAction: null,
                                     });
                                 } catch {
-                                    setToast({ open: true, message: "Ошибка импорта JSON", actionText: "", onAction: null });
+                                    setToast({
+                                        open: true,
+                                        message: "Ошибка импорта JSON",
+                                        actionText: "",
+                                        onAction: null,
+                                    });
                                 }
                             }}
                         />
@@ -281,6 +315,7 @@ export default function EstimatorPage() {
                     </div>
                 </div>
             </div>
+
             <Toast
                 open={toast.open}
                 message={toast.message}
@@ -288,26 +323,17 @@ export default function EstimatorPage() {
                 onAction={toast.onAction}
                 onClose={closeToast}
             />
+
             <ConfirmModal
                 open={confirmState.open}
-                title={
-                    confirmState.type === "template"
-                        ? "Загрузить шаблон?"
-                        : "Очистить экраны?"
-                }
+                title={confirmState.type === "template" ? "Загрузить шаблон?" : "Очистить экраны?"}
                 text={
                     confirmState.type === "template"
                         ? "Текущие экраны будут заменены."
                         : "Все экраны будут удалены. Действие можно отменить."
                 }
-                confirmText={
-                    confirmState.type === "template"
-                        ? "Загрузить"
-                        : "Очистить"
-                }
-                onCancel={() =>
-                    setConfirmState({ open: false, type: null, kind: null })
-                }
+                confirmText={confirmState.type === "template" ? "Загрузить" : "Очистить"}
+                onCancel={() => setConfirmState({ open: false, type: null, kind: null })}
                 onConfirm={() => {
                     if (confirmState.type === "template") {
                         dispatch(actions.loadTemplate(confirmState.kind));
@@ -330,6 +356,7 @@ export default function EstimatorPage() {
                     setConfirmState({ open: false, type: null, kind: null });
                 }}
             />
+
             <SendEstimateModal
                 open={sendOpen}
                 onClose={() => setSendOpen(false)}
