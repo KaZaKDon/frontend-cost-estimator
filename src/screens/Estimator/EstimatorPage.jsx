@@ -11,7 +11,11 @@ import SummaryPanel from "./components/SummaryPanel.jsx";
 import Toast from "@/components/Toast/Toast.jsx";
 import ConfirmModal from "@/components/ConfirmModal/ConfirmModal.jsx";
 import HistoryPanel from "./components/HistoryPanel.jsx";
-import { downloadJson, makeSafeFilename, dateStamp } from "@/shared/utils/downloadJson.js";
+import {
+    downloadJson,
+    makeSafeFilename,
+    dateStamp,
+} from "@/shared/utils/downloadJson.js";
 import { importDraft } from "@/shared/core/importDraft.js";
 import SendEstimateModal from "@/components/SendEstimateModal/SendEstimateModal.jsx";
 import { buildEstimateText } from "@/shared/utils/buildEstimateText.js";
@@ -41,7 +45,9 @@ export default function EstimatorPage() {
         setToast({ open: false, message: "", actionText: "", onAction: null });
     }
 
-    const [state, dispatch] = useReducer(estimatorReducer, null, () => loadAppState());
+    const [state, dispatch] = useReducer(estimatorReducer, null, () =>
+        loadAppState(),
+    );
 
     const totals = useMemo(() => selectTotals(state), [state]);
 
@@ -131,25 +137,36 @@ export default function EstimatorPage() {
             <div className="grid">
                 <div className="col-left">
                     <div className="card">
+                        <a href="https://vkazakdon.ru" className="portfolio-back">
+                                ← Портфолио
+                            </a>
                         <div className="card-head">
                             <h1>Смета</h1>
 
                             <input
                                 className="project-title"
                                 value={state.draft.projectMeta.title}
-                                onChange={(e) => dispatch(actions.setProjectTitle(e.target.value))}
+                                onChange={(e) =>
+                                    dispatch(actions.setProjectTitle(e.target.value))
+                                }
                                 placeholder="Название проекта"
                             />
 
                             {/* Кнопку оставляем ОДНУ — здесь или в LineItemsTable.
                                 Если оставляешь здесь (как на скрине) — в LineItemsTable кнопку убираем. */}
-                            <button className="primary" type="button" onClick={() => dispatch(actions.addLineItem())}>
+                            <button
+                                className="primary"
+                                type="button"
+                                onClick={() => dispatch(actions.addLineItem())}
+                            >
                                 + Добавить экран
                             </button>
                         </div>
 
                         <div className="card" style={{ marginTop: 12 }}>
-                            <div style={{ fontWeight: 800, marginBottom: 8 }}>Быстро добавить</div>
+                            <div style={{ fontWeight: 800, marginBottom: 8 }}>
+                                Быстро добавить
+                            </div>
                             <input
                                 className="bulk-input"
                                 placeholder="Например: Главная, Каталог, Карточка товара, Корзина"
@@ -160,7 +177,9 @@ export default function EstimatorPage() {
                                     }
                                 }}
                             />
-                            <div className="bulk-hint">Разделяй экраны запятыми, Enter — добавить.</div>
+                            <div className="bulk-hint">
+                                Разделяй экраны запятыми, Enter — добавить.
+                            </div>
                         </div>
                     </div>
 
@@ -182,7 +201,11 @@ export default function EstimatorPage() {
                     />
 
                     <div className="stack">
-                        <OptionsPanel draft={state.draft} dispatch={dispatch} actions={actions} />
+                        <OptionsPanel
+                            draft={state.draft}
+                            dispatch={dispatch}
+                            actions={actions}
+                        />
 
                         {state.draft.lineItems.length > 0 && <Breakdown totals={totals} />}
                     </div>
@@ -214,7 +237,9 @@ export default function EstimatorPage() {
                         }
                         onExport={() => {
                             const title = makeSafeFilename(state.draft.projectMeta.title);
-                            const profile = (state.draft.pricing?.profile || "middle").toUpperCase();
+                            const profile = (
+                                state.draft.pricing?.profile || "middle"
+                            ).toUpperCase();
                             const filename = `${dateStamp()}_${title}_${profile}.json`;
 
                             // экспортируем ВСЁ состояние draft, чтобы можно было восстановить 1:1
@@ -239,7 +264,12 @@ export default function EstimatorPage() {
                             Отправить смету
                         </button>
 
-                        <a className="secondary" href="https://t.me/KazakDmitriy" target="_blank" rel="noopener noreferrer">
+                        <a
+                            className="secondary"
+                            href="https://t.me/KazakDmitriy"
+                            target="_blank"
+                            rel="noopener noreferrer"
+                        >
                             Остались вопросы?
                         </a>
                     </div>
@@ -249,7 +279,11 @@ export default function EstimatorPage() {
                             <h2>История</h2>
 
                             <div style={{ display: "flex", gap: 8 }}>
-                                <button className="secondary" type="button" onClick={() => fileRef.current?.click()}>
+                                <button
+                                    className="secondary"
+                                    type="button"
+                                    onClick={() => fileRef.current?.click()}
+                                >
                                     Импорт JSON
                                 </button>
 
@@ -326,14 +360,22 @@ export default function EstimatorPage() {
 
             <ConfirmModal
                 open={confirmState.open}
-                title={confirmState.type === "template" ? "Загрузить шаблон?" : "Очистить экраны?"}
+                title={
+                    confirmState.type === "template"
+                        ? "Загрузить шаблон?"
+                        : "Очистить экраны?"
+                }
                 text={
                     confirmState.type === "template"
                         ? "Текущие экраны будут заменены."
                         : "Все экраны будут удалены. Действие можно отменить."
                 }
-                confirmText={confirmState.type === "template" ? "Загрузить" : "Очистить"}
-                onCancel={() => setConfirmState({ open: false, type: null, kind: null })}
+                confirmText={
+                    confirmState.type === "template" ? "Загрузить" : "Очистить"
+                }
+                onCancel={() =>
+                    setConfirmState({ open: false, type: null, kind: null })
+                }
                 onConfirm={() => {
                     if (confirmState.type === "template") {
                         dispatch(actions.loadTemplate(confirmState.kind));
