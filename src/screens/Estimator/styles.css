@@ -591,3 +591,34 @@ button:disabled {
     color: #2f6bff;
     transform: translateX(-2px);
 }
+
+.final-offer {
+    margin-top: 14px;
+    padding: 14px;
+    border-radius: 12px;
+    background: linear-gradient(135deg, #f5f7fa, #eef3ff);
+    border: 1px solid #dfe6f3;
+}
+
+.final-offer__label {
+    font-size: 13px;
+    color: #666;
+}
+
+.final-offer__price {
+    font-size: 26px;
+    font-weight: 700;
+    color: #2c7be5;
+    margin-top: 4px;
+}
+
+.final-offer__days {
+    font-size: 13px;
+    margin-top: 6px;
+    color: #444;
+}
+
+.final-range {
+    font-weight: 500;
+    color: #555;
+}

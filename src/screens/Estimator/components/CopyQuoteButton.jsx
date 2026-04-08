@@ -1,20 +1,23 @@
-import { buildQuoteText } from "@/shared/core/quoteText.js";
+import { buildQuoteText } from "@/shared/utils/buildQuoteText.js";
 
 export default function CopyQuoteButton({ draft, totals, onCopied }) {
-    async function onCopy() {
-        const text = buildQuoteText(draft, totals);
-
+    async function handleCopy() {
         try {
+            const text = buildQuoteText(draft, totals);
             await navigator.clipboard.writeText(text);
             onCopied?.();
-        } catch {
-            window.prompt("Скопируй вручную:", text);
+        } catch (error) {
+            console.error("Не удалось скопировать КП:", error);
         }
     }
 
     return (
-        <button className="primary" type="button" onClick={onCopy} disabled={!draft.lineItems.length}>
-            Скопировать смету
+        <button
+            type="button"
+            onClick={handleCopy}
+            disabled={!draft?.lineItems?.length}
+        >
+            Скопировать КП
         </button>
     );
 }

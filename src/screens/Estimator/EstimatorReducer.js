@@ -5,6 +5,7 @@ import {
     createDefaultState,
     PRICING_PROFILES
 } from "@/shared/core/defaults.js";
+import { buildPresetLineItems } from "@/shared/core/defaults.js";
 
 function now() {
     return Date.now();
@@ -210,60 +211,51 @@ export function estimatorReducer(state, action) {
             const templates = {
                 shop: {
                     title: "Интернет-магазин",
-                    items: [{
-                        title: "Главная",
-                        complexity: "hard",
-                        qty: 1
-                    },
-                    {
-                        title: "Каталог",
-                        complexity: "medium",
-                        qty: 1
-                    },
-                    {
-                        title: "Карточка товара",
-                        complexity: "hard",
-                        qty: 1
-                    },
-                    {
-                        title: "Корзина",
-                        complexity: "medium",
-                        qty: 1
-                    },
-                    {
-                        title: "Оформление заказа",
-                        complexity: "hard",
-                        qty: 1
-                    },
+                    items: [
+                        { title: "Главная", complexity: "hard", qty: 1 },
+                        { title: "Каталог", complexity: "medium", qty: 1 },
+                        { title: "Карточка товара", complexity: "hard", qty: 1 },
+                        { title: "Корзина", complexity: "medium", qty: 1 },
+                        { title: "Оформление заказа", complexity: "hard", qty: 1 },
                     ],
                 },
+
                 landing: {
                     title: "Лендинг",
-                    items: [{
-                        title: "Hero",
-                        complexity: "medium",
-                        qty: 1
-                    },
-                    {
-                        title: "О нас",
-                        complexity: "simple",
-                        qty: 1
-                    },
-                    {
-                        title: "Преимущества",
-                        complexity: "medium",
-                        qty: 1
-                    },
-                    {
-                        title: "Тарифы",
-                        complexity: "medium",
-                        qty: 1
-                    },
-                    {
-                        title: "Контакты",
-                        complexity: "simple",
-                        qty: 1
-                    },
+                    items: [
+                        { title: "Hero", complexity: "medium", qty: 1 },
+                        { title: "О нас", complexity: "simple", qty: 1 },
+                        { title: "Преимущества", complexity: "medium", qty: 1 },
+                        { title: "Тарифы", complexity: "medium", qty: 1 },
+                        { title: "Контакты", complexity: "simple", qty: 1 },
+                    ],
+                },
+
+                // 🔥 НОВОЕ
+                corporate: {
+                    title: "Корпоративный сайт",
+                    items: [
+                        { title: "Главная страница", complexity: "pro", qty: 1 },
+                        { title: "О компании", complexity: "medium", qty: 1 },
+                        { title: "Услуги", complexity: "medium", qty: 1 },
+                        { title: "Страница услуги", complexity: "medium", qty: 1 },
+                        { title: "Кейсы / Портфолио", complexity: "medium", qty: 1 },
+                        { title: "Контакты", complexity: "simple", qty: 1 },
+                        { title: "Форма обратной связи", complexity: "simple", qty: 1 },
+                    ],
+                },
+
+                // 🔥 НОВОЕ
+                webapp: {
+                    title: "Веб-приложение",
+                    items: [
+                        { title: "Авторизация", complexity: "medium", qty: 1 },
+                        { title: "Dashboard", complexity: "pro", qty: 1 },
+                        { title: "Список / Таблица", complexity: "hard", qty: 1 },
+                        { title: "Детальная страница", complexity: "hard", qty: 1 },
+                        { title: "Создание / Редактирование", complexity: "hard", qty: 1 },
+                        { title: "Профиль", complexity: "medium", qty: 1 },
+                        { title: "Админ-панель", complexity: "pro", qty: 1 },
                     ],
                 },
             };
@@ -283,7 +275,7 @@ export function estimatorReducer(state, action) {
                 projectMeta: {
                     ...state.draft.projectMeta,
                     title: `${tpl.title} (шаблон)`,
-                    updatedAt: now()
+                    updatedAt: now(),
                 },
             });
         }
@@ -497,6 +489,18 @@ export function estimatorReducer(state, action) {
         }
         case A.IMPORT_DRAFT: {
             return { ...state, draft: action.draft };
+        }
+        case A.SET_PROJECT_TYPE: {
+            const type = action.payload;
+
+            return patchDraft(state, {
+                projectMeta: {
+                    ...state.draft.projectMeta,
+                    type,
+                    updatedAt: now(),
+                },
+                lineItems: buildPresetLineItems(type),
+            });
         }
 
         default:

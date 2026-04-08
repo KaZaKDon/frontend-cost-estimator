@@ -1,15 +1,15 @@
 export const PRICING_PROFILES = {
     junior: {
-        simple: 3000,
-        medium: 6000,
-        hard: 12000,
-        pro: 20000,
+        simple: 1000,
+        medium: 3000,
+        hard: 6000,
+        pro: 10000,
     },
     middle: {
-        simple: 5000,
-        medium: 10000,
-        hard: 20000,
-        pro: 40000,
+        simple: 3000,
+        medium: 8000,
+        hard: 15000,
+        pro: 30000,
     },
     senior: {
         simple: 8000,
@@ -18,6 +18,20 @@ export const PRICING_PROFILES = {
         pro: 60000,
     },
 };
+
+// helper
+export function buildPresetLineItems(type) {
+    const preset = PROJECT_PRESETS[type];
+    if (!preset) return [];
+
+    return preset.items.map((item) => ({
+        id: crypto.randomUUID(),
+        title: item.title,
+        complexity: item.complexity,
+        qty: item.qty ?? 1,
+        notes: "",
+    }));
+}
 
 export const DEFAULT_PRICING = {
     // ВАЖНО: tiers здесь — дефолт “middle”, но реальным источником станет профиль
@@ -32,11 +46,11 @@ export const DEFAULT_PRICING = {
         urgencyPct: 0, // 0|30|70
     },
     fixedAddons: {
-        formsValidation: 6000,
-        apiIntegration: 12000,
-        advancedAnimations: 8000,
-        seoSemantic: 3000,
-        performance: 6000,
+        formsValidation: 4000,
+        apiIntegration: 8000,
+        advancedAnimations: 6000,
+        seoSemantic: 2000,
+        performance: 4000,
     },
     percentAddons: {
         accessibilityPct: 10,
@@ -93,16 +107,18 @@ export const DEFAULT_OPTIONS = {
 export function createEmptyDraft() {
     const pricing = structuredClone(DEFAULT_PRICING);
 
-    // страховка: если кто-то поменял DEFAULT_PRICING.profile
     const profile = pricing.profile || "middle";
     pricing.profile = profile;
     pricing.tiers = { ...(PRICING_PROFILES[profile] || PRICING_PROFILES.middle) };
+
+    // ✅ ВАЖНО: объявляем здесь
+    const defaultType = "landing";
 
     return {
         projectMeta: {
             id: "draft",
             title: "Новый проект",
-            type: "website", // landing|website|app|other
+            type: defaultType,
             currency: "RUB",
             createdAt: Date.now(),
             updatedAt: Date.now(),
@@ -110,7 +126,10 @@ export function createEmptyDraft() {
         pricing,
         timeNorms: structuredClone(DEFAULT_TIME_NORMS),
         options: structuredClone(DEFAULT_OPTIONS),
+
+        // ✅ если используешь пресеты
         lineItems: [],
+
         ui: {
             optionsOpen: {
                 responsive: true,

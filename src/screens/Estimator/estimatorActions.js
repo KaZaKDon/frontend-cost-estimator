@@ -27,7 +27,13 @@ export const A = {
     DELETE_HISTORY: "DELETE_HISTORY",
 
     IMPORT_DRAFT: "IMPORT_DRAFT",
+    SET_PROJECT_TYPE: "SET_PROJECT_TYPE",
 };
+
+export const setProjectType = (type) => ({
+    type: A.SET_PROJECT_TYPE,
+    payload: type,
+});
 
 export const actions = {
     hydrate: (payload) => ({

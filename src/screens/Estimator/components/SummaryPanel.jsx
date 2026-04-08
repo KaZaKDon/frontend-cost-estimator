@@ -18,9 +18,22 @@ export default function SummaryPanel({
                     <div className="sum-total">{formatRub(totals.totalCost)}</div>
                     <div className="sum-days">{formatDays(totals.totalDays)}</div>
                 </div>
+                <div className="final-offer">
+                    <div className="final-offer__label">
+                        Оценка проекта под ключ
+                    </div>
+
+                    <div className="final-offer__price">
+                        {formatRub(totals.totalCost)}
+                    </div>
+
+                    <div className="final-offer__days">
+                        Срок реализации: {formatDays(totals.totalDays)}
+                    </div>
+                </div>
 
                 {totals.range ? (
-                    <div className="sum-range">
+                    <div className="sum-range final-range">
                         Диапазон: {formatRub(totals.range.min)} – {formatRub(totals.range.max)}
                     </div>
                 ) : null}
@@ -47,6 +60,13 @@ export default function SummaryPanel({
                         </button>
                         <button type="button" onClick={() => onLoadTemplate?.("landing")}>
                             Лендинг
+                        </button>
+                        <button type="button" onClick={() => onLoadTemplate?.("corporate")}>
+                            Корпоративный сайт
+                        </button>
+
+                        <button type="button" onClick={() => onLoadTemplate?.("webapp")}>
+                            Веб-приложение
                         </button>
                     </div>
                     <div className="tpl-hint">Вставит типовой список экранов.</div>
